@@ -13,4 +13,5 @@ fn main() {
     println!("Day 2b: {}", day_2::sum_powers_of_minimum_grabs(read_input_file("day_2.txt")));
 
     println!("Day 3a: {}", day_3::sum_part_numbers(read_input_file("day_3.txt")));
+    println!("Day 3b: {}", day_3::sum_gear_ratios(read_input_file("day_3.txt")));
 }
