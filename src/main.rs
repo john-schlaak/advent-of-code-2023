@@ -1,6 +1,7 @@
 mod day_1;
 mod day_2;
 mod day_3;
+mod day_4;
 mod utilities;
 
 use utilities::read_input_file;
@@ -14,4 +15,6 @@ fn main() {
 
     println!("Day 3a: {}", day_3::sum_part_numbers(read_input_file("day_3.txt")));
     println!("Day 3b: {}", day_3::sum_gear_ratios(read_input_file("day_3.txt")));
+
+    println!("Day 4a: {}", day_4::sum_cards(read_input_file("day_4.txt")));
 }
