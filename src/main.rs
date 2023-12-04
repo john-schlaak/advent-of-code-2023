@@ -17,4 +17,5 @@ fn main() {
     println!("Day 3b: {}", day_3::sum_gear_ratios(read_input_file("day_3.txt")));
 
     println!("Day 4a: {}", day_4::sum_cards(read_input_file("day_4.txt")));
+    println!("Day 4b: {}", day_4::count_cards(read_input_file("day_4.txt")))
 }
