@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::cmp::{min, max};
 use std::ops::Range;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -15,6 +15,60 @@ impl AlmanacMap {
             Some(src_num - self.src_range.start + self.dest_range.start)
         } else {
             None
+        }
+    }
+
+    fn map_input_range(&self, src_range: &Range<u64>) -> Option<(Range<u64>, Range<u64>)> {
+        if src_range.start <= self.src_range.start {
+            if src_range.end <= self.src_range.start {
+                /* <src_range>................
+                 * ...........<self.src_range>
+                 */
+                None
+            } else {
+                if src_range.end <= self.src_range.end {
+                    /* ...<src_range>.........
+                     * .......<self.src_range>
+                     */
+                    Some((
+                        self.src_range.start..src_range.end,
+                        self.dest_range.start..(src_range.end - self.src_range.start + self.dest_range.start)
+                    ))
+                } else {
+                    /* ..<....src_range....>..
+                     * ...<self.src_range>....
+                     */
+                    Some((
+                        self.src_range.start..self.src_range.end,
+                        self.dest_range.start..self.dest_range.end
+                    ))
+                }
+            }
+        } else {
+            if src_range.start >= self.src_range.end {
+                /* ................<src_range>
+                 * <self.src_range>...........
+                 */
+                None
+            } else {
+                if src_range.end <= self.src_range.end {
+                    /* ..<src_range>..........
+                     * <self.src_range>.......
+                     */
+                    Some((
+                        src_range.start..src_range.end,
+                        (src_range.start - self.src_range.start + self.dest_range.start)..(src_range.end - self.src_range.start + self.dest_range.start)
+                    ))
+                } else {
+                    /* .........<src_range>...
+                     * <self.src_range>.......
+                     */
+                    Some((
+                        src_range.start..self.src_range.end,
+                        (src_range.start - self.src_range.start + self.dest_range.start)..self.dest_range.end
+                    ))
+                }
+            }
         }
     }
 }
@@ -39,20 +93,121 @@ impl Almanac {
         }
     }
 
+    fn map_cat_to_cat_range(&self, src_cat: &String, src_range: &Range<u64>) -> Vec<Range<u64>> {
+        if src_range.start == src_range.end {
+            vec![]
+        }
+        else if let Some(cat_maps) = self.almanac_maps.get(src_cat) {
+            let (remaining_src_ranges, dest_ranges) = cat_maps.iter()
+                .fold(
+                    (vec![src_range.clone()], vec![]), 
+                    |(src_ranges, dest_ranges), cat_map| if let Some((matched_src_range, dest_range)) = cat_map.map_input_range(src_range) {
+                        (
+                            src_ranges.into_iter().flat_map(
+                                |src_range| if src_range.start <= matched_src_range.start {
+                                    if src_range.end <= matched_src_range.start {
+                                        vec![Some(src_range)]
+                                    } else {
+                                        vec![
+                                            if src_range.start < matched_src_range.start {
+                                                Some(src_range.start..matched_src_range.start)
+                                            } else {
+                                                None
+                                            },
+                                            if src_range.end > matched_src_range.end {
+                                                Some(matched_src_range.end..src_range.end)
+                                            } else {
+                                                None
+                                            }
+                                        ]
+                                    }
+                                } else {
+                                    if src_range.start >= matched_src_range.end {
+                                        vec![Some(src_range)]
+                                    } else {
+                                        if src_range.end <= matched_src_range.end {
+                                            vec![None]
+                                        } else {
+                                            vec![Some(matched_src_range.end..src_range.end)]
+                                        }
+                                    }
+                                }.into_iter().filter_map(|item| item)
+                            ).collect(),
+                            {
+                                let mut dest_ranges = [dest_ranges, vec![dest_range]].concat();
+                                dest_ranges.sort_by(|range, other_range| range.start.partial_cmp(&other_range.start).unwrap());
+                                dest_ranges.iter().fold(
+                                    vec![], 
+                                    |dest_ranges, dest_range| if let Some(other_range) = dest_ranges.last() {
+                                        Vec::from([
+                                            Vec::from(dest_ranges.get(0..(dest_ranges.len() - 1)).unwrap()),
+                                            if dest_range.start <= other_range.end && dest_range.end >= other_range.start {
+                                                vec![min(dest_range.start, other_range.start)..max(dest_range.end, other_range.end)]
+                                            } else {
+                                                vec![other_range.clone(), dest_range.clone()]
+                                            }
+                                        ].concat())
+                                    } else {
+                                        vec![dest_range.clone()]
+                                    }
+                                )
+                            }
+                        )
+                    } else {
+                        (src_ranges, dest_ranges)
+                    }
+                );
+            let dest_cat = &cat_maps.first().unwrap().dest_cat;
+            [
+                remaining_src_ranges.iter().map(
+                    |src_range| self.map_cat_to_cat_range(&dest_cat, src_range).into_iter()
+                ).flatten().collect::<Vec<Range<u64>>>(),
+                dest_ranges.iter().map(
+                    |dest_range| self.map_cat_to_cat_range(&dest_cat, dest_range).into_iter()
+                ).flatten().collect::<Vec<Range<u64>>>()
+            ].concat()
+        } else {
+            vec![src_range.clone()]
+        }
+    }
+
     fn map_seeds_to_outputs(&self) -> Vec<u64> {
         let seed_cat = String::from_str("seed").unwrap();
         self.seeds.iter().map(
             |&seed| self.map_cat_to_cat(&seed_cat, seed)
         ).collect()
     }
+
+    fn map_seed_pairs_to_outputs(&self) -> Vec<Range<u64>> {
+        let seed_cat = String::from_str("seed").unwrap();
+        (0..(self.seeds.len() / 2)).flat_map(
+            |i| self.map_cat_to_cat_range(
+                &seed_cat,
+                {
+                    let (&src_start, &range) = (self.seeds.get(i * 2).unwrap(), self.seeds.get(i * 2 + 1).unwrap());
+                    &(src_start..(src_start + range))
+                }
+            ).into_iter()
+        ).collect()
+    }
 }
 
 
 pub fn get_locations_for_seeds(almanac_text: String) -> u64 {
-    *parse_almanac(almanac_text)
+    parse_almanac(almanac_text)
         .map_seeds_to_outputs()
-        .iter()
-        .reduce(|min_loc, loc| min(min_loc, loc)).unwrap_or(&0)
+        .into_iter()
+        .reduce(|min_loc, loc| min(min_loc, loc)).unwrap_or(0)
+}
+
+
+pub fn get_locations_for_seed_ranges(almanac_text: String) -> u64 {
+    parse_almanac(almanac_text)
+        .map_seed_pairs_to_outputs()
+        .into_iter()
+        .map(|range| range.start)
+        .reduce(|min_loc, loc| min(min_loc, loc))
+        .unwrap_or(0)
 }
 
 

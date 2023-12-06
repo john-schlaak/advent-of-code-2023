@@ -21,4 +21,5 @@ fn main() {
     println!("Day 4b: {}", day_4::count_cards(read_input_file("day_4.txt")));
 
     println!("Day 5a: {}", day_5::get_locations_for_seeds(read_input_file("day_5.txt")));
+    println!("Day 5b: {}", day_5::get_locations_for_seed_ranges(read_input_file("day_5.txt")));
 }
