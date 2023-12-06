@@ -3,6 +3,7 @@ mod day_2;
 mod day_3;
 mod day_4;
 mod day_5;
+mod day_6;
 mod utilities;
 
 use utilities::read_input_file;
@@ -22,4 +23,6 @@ fn main() {
 
     println!("Day 5a: {}", day_5::get_locations_for_seeds(read_input_file("day_5.txt")));
     println!("Day 5b: {}", day_5::get_locations_for_seed_ranges(read_input_file("day_5.txt")));
+
+    println!("Day 6a: {}", day_6::get_product_of_num_possible_record_breaks(read_input_file("day_6.txt")));
 }
