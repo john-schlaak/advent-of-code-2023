@@ -25,4 +25,5 @@ fn main() {
     println!("Day 5b: {}", day_5::get_locations_for_seed_ranges(read_input_file("day_5.txt")));
 
     println!("Day 6a: {}", day_6::get_product_of_num_possible_record_breaks(read_input_file("day_6.txt")));
+    println!("Day 6b: {}", day_6::get_single_race_num_possible_record_breaks(read_input_file("day_6.txt")));
 }
