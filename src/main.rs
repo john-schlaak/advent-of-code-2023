@@ -4,6 +4,7 @@ mod day_3;
 mod day_4;
 mod day_5;
 mod day_6;
+mod day_7;
 mod utilities;
 
 use utilities::read_input_file;
@@ -26,4 +27,6 @@ fn main() {
 
     println!("Day 6a: {}", day_6::get_product_of_num_possible_record_breaks(read_input_file("day_6.txt")));
     println!("Day 6b: {}", day_6::get_single_race_num_possible_record_breaks(read_input_file("day_6.txt")));
+
+    println!("Day 7a: {}", day_7::calculate_total_winnings(read_input_file("day_7.txt")));
 }
