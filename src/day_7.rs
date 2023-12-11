@@ -1,4 +1,4 @@
-use std::{collections::HashMap, cmp::Ordering};
+use std::{collections::HashMap, cmp::{Ordering, min}};
 
 
 #[derive(PartialEq, Eq, Hash, PartialOrd, Clone, Copy)]
@@ -79,18 +79,23 @@ impl Card {
 
 struct Hand {
     cards: [Card; 5],
-    bid: u32
+    bid: u32,
+    use_jokers: bool
 }
 
 
 impl Hand {
     fn count_cards(&self) -> [Option<(Card, usize)>; 5] {
         let mut card_counts: HashMap<Card, usize> = HashMap::new();
+        let mut num_jokers = 0;
         for card in self.cards {
-            if let Some(count) = card_counts.get_mut(&card) {
+            if self.use_jokers && card == Card::Jack {
+                num_jokers += 1
+            } else if let Some(count) = card_counts.get_mut(&card) {
                 *count += 1;
             } else {
                 card_counts.insert(card, 1);
+
             }
         }
         let mut card_count_list = Card::get_ordered_list().into_iter().filter_map(
@@ -101,6 +106,15 @@ impl Hand {
             }
         ).collect::<Vec<(Card, usize)>>();
         card_count_list.sort_by(|(_, count_a), (_, count_b)| count_b.cmp(count_a));
+        if num_jokers == 5 {
+            card_count_list = vec![(Card::Jack, 5)];
+        } else {
+            for (_, count) in card_count_list.iter_mut() {
+                let jokers_to_add = min(num_jokers, 5 - *count);
+                *count += jokers_to_add;
+                num_jokers -= jokers_to_add;
+            }
+        }
         [
             if let Some(pair) = card_count_list.get(0) { Some(*pair) } else { None },
             if let Some(pair) = card_count_list.get(1) { Some(*pair) } else { None },
@@ -147,7 +161,13 @@ impl PartialOrd for Hand {
             Some(
                 self.cards.iter().zip(other.cards.iter()).find_map(
                     |(card_a, card_b)| if card_a != card_b {
-                        card_b.partial_cmp(&card_a)
+                        if !self.use_jokers || (*card_a != Card::Jack && *card_b != Card::Jack) {
+                            card_b.partial_cmp(&card_a)
+                        } else if *card_b == Card::Jack {
+                            Some(Ordering::Greater)
+                        } else {
+                            Some(Ordering::Less)
+                        }
                     } else {
                         None
                     }
@@ -165,8 +185,8 @@ impl Ord for Hand {
 }
 
 
-pub fn calculate_total_winnings(hands_text: String) -> u32 {
-    let mut hands = parse_hands(hands_text);
+pub fn calculate_total_winnings(hands_text: String, use_jokers: bool) -> u32 {
+    let mut hands = parse_hands(hands_text, use_jokers);
     hands.sort();
     hands.iter()
         .enumerate()
@@ -177,7 +197,7 @@ pub fn calculate_total_winnings(hands_text: String) -> u32 {
 }
 
 
-fn parse_hands(hands_text: String) -> Vec<Hand> {
+fn parse_hands(hands_text: String, use_jokers: bool) -> Vec<Hand> {
     hands_text.split('\n').map(
         |line_text| if let Some([cards_text, bid_text]) = line_text.trim().split_whitespace().collect::<Vec<&str>>().get(0..2) {
             let cards = if let Some(&[c1, c2, c3, c4, c5]) = cards_text.chars().collect::<Vec<char>>().get(0..5) {
@@ -190,7 +210,7 @@ fn parse_hands(hands_text: String) -> Vec<Hand> {
             } else {
                 panic!("Could not parse bid from '{}'", bid_text)
             };
-            Hand { cards, bid }
+            Hand { cards, bid, use_jokers }
         } else {
             panic!("Could not parse cards_text and bid_text from '{}'", line_text)
         }

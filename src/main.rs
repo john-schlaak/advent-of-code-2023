@@ -5,6 +5,7 @@ mod day_4;
 mod day_5;
 mod day_6;
 mod day_7;
+mod day_8;
 mod utilities;
 
 use utilities::read_input_file;
@@ -28,5 +29,9 @@ fn main() {
     println!("Day 6a: {}", day_6::get_product_of_num_possible_record_breaks(read_input_file("day_6.txt")));
     println!("Day 6b: {}", day_6::get_single_race_num_possible_record_breaks(read_input_file("day_6.txt")));
 
-    println!("Day 7a: {}", day_7::calculate_total_winnings(read_input_file("day_7.txt")));
+    println!("Day 7a: {}", day_7::calculate_total_winnings(read_input_file("day_7.txt"), false));
+    println!("Day 7b: {}", day_7::calculate_total_winnings(read_input_file("day_7.txt"), true));
+
+    println!("Day 8a: {}", day_8::count_moves_for_map(read_input_file("day_8.txt")));
+    println!("Day 8b: {}", day_8::count_moves_from_any_a_for_map(read_input_file("day_8.txt")));
 }
