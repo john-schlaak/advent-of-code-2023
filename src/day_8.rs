@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 enum Direction {
     Left,
@@ -84,40 +84,15 @@ impl Map {
                 } else {
                     cycle_length_a - (cycle_start_a - abs_z_pos_b) % cycle_length_a
                 };
-                let rel_z_pos_b_on_b = abs_z_pos_b - cycle_start_b;
-                let rel_z_pos_a_on_b = if abs_z_pos_a >= cycle_start_b {
-                    (abs_z_pos_a - cycle_start_b) % cycle_length_b
-                } else {
-                    cycle_length_b - (cycle_start_b - abs_z_pos_a) % cycle_length_b
-                };
-                let normalized_z_pos_a_on_b = if rel_z_pos_a_on_b >= rel_z_pos_b_on_b {
-                    rel_z_pos_a_on_b - rel_z_pos_b_on_b
-                } else {
-                    cycle_length_b - (rel_z_pos_b_on_b - rel_z_pos_a_on_b) % cycle_length_b
-                };
                 let normalized_z_pos_b_on_a = if rel_z_pos_b_on_a >= rel_z_pos_a_on_a {
                     rel_z_pos_b_on_a - rel_z_pos_a_on_a
                 } else {
                     cycle_length_a - (rel_z_pos_a_on_a - rel_z_pos_b_on_a) % cycle_length_a
                 };
-                let mut times_to_nullify_offset = 0;
-                loop {
-                    if (normalized_z_pos_b_on_a + cycle_length_b * times_to_nullify_offset) % cycle_length_a == 0 {
-                        break;
-                    } else {
-                        times_to_nullify_offset += 1;
-                    }
-                }
+                let times_to_nullify_offset = count_n_to_nullify_offset(cycle_length_a, cycle_length_b, normalized_z_pos_b_on_a);
                 let additional_moves_offset = times_to_nullify_offset * cycle_length_b;
-                let mut times_to_loop = 1;
-                loop {
-                    if (cycle_length_b * times_to_loop) % cycle_length_a == 0 {
-                        break;
-                    } else {
-                        times_to_loop += 1;
-                    }
-                }
-                (cycle_start_b + additional_moves_offset, cycle_length_b * times_to_loop, abs_z_pos_b + additional_moves_offset)
+                let least_common_cycle_length = least_common_multiple(cycle_length_a, cycle_length_b);
+                (cycle_start_b + additional_moves_offset, least_common_cycle_length, abs_z_pos_b + additional_moves_offset)
             }
         ).unwrap();
         final_z_pos
@@ -132,6 +107,46 @@ pub fn count_moves_for_map(map_text: String) -> usize {
 
 pub fn count_moves_from_any_a_for_map(map_text: String) -> usize {
     parse_map(map_text).calculate_moves_from_any_a()
+}
+
+
+// x < a, b < a
+fn count_n_to_nullify_offset(a: usize, b: usize, x: usize) -> usize {
+    let move_up_magnitude = b;
+    let move_up_cost = 1;
+    let move_down_magnitude = a % b;
+    let move_down_cost = (a - move_down_magnitude) / b;
+    let distance_up = a - x;
+    let distance_down = x;
+    let up_offset = distance_up % move_up_magnitude;
+    let down_offset = distance_down % move_down_magnitude;
+    if up_offset == 0 {
+        distance_up / move_up_magnitude
+    } else if down_offset == 0 {
+        (distance_down / move_down_magnitude) * move_down_cost
+    } else if move_up_magnitude >= move_down_magnitude {
+        let moves_down = count_n_to_nullify_offset(move_up_magnitude, move_down_magnitude, up_offset);
+        moves_down * move_down_cost + (moves_down * move_down_magnitude + distance_up) / move_up_magnitude * move_up_cost
+    } else {
+        let moves_up = count_n_to_nullify_offset(move_down_magnitude, move_up_magnitude, down_offset);
+        moves_up * move_up_cost + (moves_up * move_up_magnitude + distance_down) / move_down_magnitude * move_down_cost
+    }
+}
+
+
+fn greatest_common_denominator(a: usize, b: usize) -> usize {
+    let (mut a, mut b) = (a, b);
+    while b != 0 {
+        let last_b = b;
+        b = a % b;
+        a = last_b;
+    }
+    a
+}
+
+
+fn least_common_multiple(a: usize, b: usize) -> usize {
+    a * b / greatest_common_denominator(a, b)
 }
 
 
